@@ -146,7 +146,7 @@ SENSOR_DEFINITIONS = {
         "factor": 1,
         "icon": "mdi:battery",
     },
-    "acpro_cms_soc": {
+    "acpro_soc": {
         "name": "SOC AC Pro",
         "unit": PERCENTAGE,
         "device_class": SensorDeviceClass.BATTERY,
@@ -288,14 +288,6 @@ SENSOR_DEFINITIONS = {
     },
 
     # ── BATTERIE ECHTZEIT ─────────────────────────────────────────────────────
-    "bmsBattSoc": {
-        "name": "Batterie SOC",
-        "unit": PERCENTAGE,
-        "device_class": SensorDeviceClass.BATTERY,
-        "state_class": SensorStateClass.MEASUREMENT,
-        "factor": 1,
-        "icon": "mdi:battery",
-    },
     "bmsBattSoh": {
         "name": "Batterie Gesundheit (SOH)",
         "unit": PERCENTAGE,
