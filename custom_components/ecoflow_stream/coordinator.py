@@ -88,12 +88,12 @@ class EcoFlowCoordinator(DataUpdateCoordinator):
     def _update_system_soc(self) -> None:
         """Gewichteten Gesamt-SOC berechnen.
         
-        Ultra X:  3.840 Wh (bmsBattSoc)
-        AC Pro:   1.920 Wh (cascadeSysSoc)
+        Ultra X:  3.840 Wh → MQTT Key: 'soc' von BK61ZE1B2J1F0293
+        AC Pro:   1.920 Wh → MQTT Key: 'cmsBattSoc' von BK31ZE1A4H4J1395
         Gesamt:   5.760 Wh
         """
-        soc_ultrax = self.realtime_data.get("bmsBattSoc")
-        soc_acpro = self.realtime_data.get("cascadeSysSoc")
+        soc_ultrax = self.realtime_data.get("soc")
+        soc_acpro = self.realtime_data.get("cmsBattSoc")
 
         if soc_ultrax is not None and soc_acpro is not None:
             try:
