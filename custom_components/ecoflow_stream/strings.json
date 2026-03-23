@@ -1,0 +1,22 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "EcoFlow Stream einrichten",
+        "data": {
+          "access_key": "Access Key",
+          "secret_key": "Secret Key",
+          "main_sn": "Seriennummer Ultra X (Hauptgerät)",
+          "secondary_sn": "Seriennummer AC Pro (optional)"
+        }
+      }
+    },
+    "error": {
+      "invalid_credentials": "Ungültige API-Zugangsdaten",
+      "cannot_connect": "Verbindung fehlgeschlagen"
+    },
+    "abort": {
+      "already_configured": "Gerät bereits eingerichtet"
+    }
+  }
+}
