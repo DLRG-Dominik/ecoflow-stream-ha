@@ -9,7 +9,7 @@ import ssl
 import time
 from typing import Any, Callable
 
-import aiohttp
+import aiohttp  # wird noch für Typ-Kompatibilität mit HA benötigt
 import paho.mqtt.client as mqtt
 
 from .const import API_HOST, MQTT_HOST, MQTT_PORT
@@ -53,60 +53,66 @@ def _build_sign(access_key: str, secret_key: str, body_data: dict | None = None)
 
 
 class EcoFlowApiClient:
-    """REST API Client."""
+    """REST API Client (via urllib, umgeht aiohttp Header-Normalisierung)."""
 
     def __init__(self, access_key: str, secret_key: str) -> None:
         self._access_key = access_key
         self._secret_key = secret_key
-        self._session: aiohttp.ClientSession | None = None
-
-    async def _get_session(self) -> aiohttp.ClientSession:
-        if self._session is None or self._session.closed:
-            self._session = aiohttp.ClientSession()
-        return self._session
 
     def _headers(self, body_data: dict | None = None) -> dict:
-        """Headers mit Signatur. body_data nur für POST angeben, nie für GET-Query-Params!"""
-        headers = _build_sign(self._access_key, self._secret_key, body_data)
-        headers["Content-Type"] = "application/json;charset=UTF-8"
-        return headers
+        """Headers mit Signatur.
+        
+        WICHTIG: aiohttp normalisiert Header-Namen zu lowercase!
+        EcoFlow erwartet aber exakt 'accessKey' (camelCase).
+        Workaround: Wir senden die Anfragen mit urllib statt aiohttp.
+        body_data nur für POST angeben, nie für GET-Query-Params!
+        """
+        sign = _build_sign(self._access_key, self._secret_key, body_data)
+        sign["Content-Type"] = "application/json;charset=UTF-8"
+        return sign
+
+    async def _request(self, method: str, url: str, params: dict | None = None, json_body: dict | None = None) -> dict:
+        """HTTP Request via urllib (umgeht aiohttp Header-Normalisierung)."""
+        import urllib.request
+        import urllib.parse
+
+        headers = self._headers(json_body)
+
+        if params:
+            url = f"{url}?{urllib.parse.urlencode(params)}"
+
+        data = json.dumps(json_body).encode() if json_body else None
+        req = urllib.request.Request(url, data=data, method=method.upper())
+        for k, v in headers.items():
+            req.add_header(k, v)
+
+        loop = asyncio.get_event_loop()
+        def do_request():
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                return json.loads(resp.read().decode())
+
+        return await loop.run_in_executor(None, do_request)
 
     async def get_device_list(self) -> list[dict]:
-        session = await self._get_session()
-        async with session.get(
-            f"{API_HOST}/iot-open/sign/device/list",
-            headers=self._headers(None),
-        ) as resp:
-            data = await resp.json()
-            if data.get("code") == "0":
-                return data.get("data", [])
-            _LOGGER.error("Geräteliste Fehler: %s", data)
-            return []
+        data = await self._request("GET", f"{API_HOST}/iot-open/sign/device/list")
+        if data.get("code") == "0":
+            return data.get("data", [])
+        _LOGGER.error("Geräteliste Fehler: %s", data)
+        return []
 
     async def get_all_quota(self, sn: str) -> dict:
-        session = await self._get_session()
-        async with session.get(
-            f"{API_HOST}/iot-open/sign/device/quota/all",
-            params={"sn": sn},
-            headers=self._headers(None),  # SN nicht in Signatur!
-        ) as resp:
-            data = await resp.json()
-            if data.get("code") == "0":
-                return data.get("data", {})
-            _LOGGER.error("Quota Fehler: %s", data)
-            return {}
+        data = await self._request("GET", f"{API_HOST}/iot-open/sign/device/quota/all", params={"sn": sn})
+        if data.get("code") == "0":
+            return data.get("data", {})
+        _LOGGER.error("Quota Fehler: %s", data)
+        return {}
 
     async def get_mqtt_credentials(self) -> dict | None:
-        session = await self._get_session()
-        async with session.get(
-            f"{API_HOST}/iot-open/sign/certification",
-            headers=self._headers(None),
-        ) as resp:
-            data = await resp.json()
-            if data.get("code") == "0":
-                return data.get("data")
-            _LOGGER.error("MQTT Credentials Fehler: %s", data)
-            return None
+        data = await self._request("GET", f"{API_HOST}/iot-open/sign/certification")
+        if data.get("code") == "0":
+            return data.get("data")
+        _LOGGER.error("MQTT Credentials Fehler: %s", data)
+        return None
 
     async def validate_credentials(self) -> bool:
         try:
@@ -118,7 +124,6 @@ class EcoFlowApiClient:
 
     async def get_historical_data(self, sn: str, code: str, begin: str, end: str) -> list:
         """Historische Tagesdaten abrufen."""
-        session = await self._get_session()
         payload = {
             "sn": sn,
             "params": {
@@ -127,21 +132,15 @@ class EcoFlowApiClient:
                 "code": code,
             },
         }
-        async with session.post(
-            f"{API_HOST}/iot-open/sign/device/quota/data",
-            json=payload,
-            headers=self._headers(payload),  # POST → body in Signatur
-        ) as resp:
-            data = await resp.json()
-            if data.get("code") == "0":
-                inner = data.get("data", {})
-                if isinstance(inner, dict):
-                    return inner.get("data", [])
-            return []
+        data = await self._request("POST", f"{API_HOST}/iot-open/sign/device/quota/data", json_body=payload)
+        if data.get("code") == "0":
+            inner = data.get("data", {})
+            if isinstance(inner, dict):
+                return inner.get("data", [])
+        return []
 
     async def close(self) -> None:
-        if self._session:
-            await self._session.close()
+        pass  # urllib braucht kein Cleanup
 
 
 class EcoFlowMqttClient:
