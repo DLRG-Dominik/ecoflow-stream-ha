@@ -171,12 +171,12 @@ class EcoFlowCoordinator(DataUpdateCoordinator):
                     self.realtime_data["soc_acpro_raw"] = value  # AC Pro SOC (raw)
                 continue
 
-            # cmsBattSoc gerätespezifisch
+            # cmsBattSoc kommt vom AC Pro (secondary_sn) → direkt als cmsBattSoc speichern
             if key == "cmsBattSoc":
-                if sn == self.main_sn:
-                    self.realtime_data["cmsBattSoc"] = value
-                elif sn == self.secondary_sn:
-                    self.realtime_data["cmsBattSoc_acpro"] = value
+                if sn == self.secondary_sn:
+                    self.realtime_data["cmsBattSoc"] = value  # AC Pro SOC
+                elif sn == self.main_sn:
+                    self.realtime_data["cmsBattSoc_ultrax"] = value  # Ultra X CMS SOC
                 continue
 
             # Normalen Wert speichern
