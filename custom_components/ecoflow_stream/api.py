@@ -91,10 +91,20 @@ class EcoFlowApiClient:
         req.headers["sign"] = sign["sign"]
         req.headers["Content-Type"] = "application/json;charset=UTF-8"
 
+        _LOGGER.debug(
+            "API Request: %s %s | Headers: %s | Body: %s",
+            method.upper(),
+            url,
+            {k: v for k, v in req.headers.items()},
+            json_body,
+        )
+
         loop = asyncio.get_event_loop()
         def do_request():
             with urllib.request.urlopen(req, timeout=10) as resp:
-                return json.loads(resp.read().decode())
+                result = json.loads(resp.read().decode())
+                _LOGGER.debug("API Response: %s", result)
+                return result
 
         return await loop.run_in_executor(None, do_request)
 
