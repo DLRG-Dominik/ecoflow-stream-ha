@@ -72,19 +72,24 @@ class EcoFlowApiClient:
         return sign
 
     async def _request(self, method: str, url: str, params: dict | None = None, json_body: dict | None = None) -> dict:
-        """HTTP Request via urllib (umgeht aiohttp Header-Normalisierung)."""
+        """HTTP Request via urllib (mit manuellem Header-Handling)."""
         import urllib.request
         import urllib.parse
 
-        headers = self._headers(json_body)
+        sign = _build_sign(self._access_key, self._secret_key, json_body)
 
         if params:
             url = f"{url}?{urllib.parse.urlencode(params)}"
 
         data = json.dumps(json_body).encode() if json_body else None
         req = urllib.request.Request(url, data=data, method=method.upper())
-        for k, v in headers.items():
-            req.add_header(k, v)
+
+        # urllib.add_header() normalisiert zu "Accesskey" – direkt ins dict schreiben!
+        req.headers["accessKey"] = sign["accessKey"]
+        req.headers["nonce"] = sign["nonce"]
+        req.headers["timestamp"] = sign["timestamp"]
+        req.headers["sign"] = sign["sign"]
+        req.headers["Content-Type"] = "application/json;charset=UTF-8"
 
         loop = asyncio.get_event_loop()
         def do_request():
