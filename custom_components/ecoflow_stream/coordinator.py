@@ -92,7 +92,7 @@ class EcoFlowCoordinator(DataUpdateCoordinator):
         AC Pro:   1.920 Wh → MQTT Key: 'cmsBattSoc' von BK31ZE1A4H4J1395
         Gesamt:   5.760 Wh
         """
-        soc_ultrax = self.realtime_data.get("soc")
+        soc_ultrax = self.realtime_data.get("soc_ultrax")
         soc_acpro = self.realtime_data.get("cmsBattSoc")
 
         if soc_ultrax is not None and soc_acpro is not None:
@@ -152,7 +152,6 @@ class EcoFlowCoordinator(DataUpdateCoordinator):
     def _process_mqtt_params(self, sn: str, params: dict) -> None:
         """MQTT-Nachricht verarbeiten und unbekannte Parameter erkennen."""
         known_keys = set(SENSOR_DEFINITIONS.keys()) | set(BINARY_SENSOR_DEFINITIONS.keys()) | IGNORED_PARAMS
-        # cloudMetter Unterfelder
         known_keys |= {"cloudMetter_phaseAPower", "cloudMetter_phaseBPower", "cloudMetter_phaseCPower"}
 
         new_unknown = False
@@ -164,13 +163,29 @@ class EcoFlowCoordinator(DataUpdateCoordinator):
                 self.realtime_data["cloudMetter_phaseCPower"] = value.get("phaseCPower", 0)
                 continue
 
+            # SOC gerätespezifisch speichern
+            if key == "soc":
+                if sn == self.main_sn:
+                    self.realtime_data["soc_ultrax"] = value  # Ultra X SOC
+                elif sn == self.secondary_sn:
+                    self.realtime_data["soc_acpro_raw"] = value  # AC Pro SOC (raw)
+                continue
+
+            # cmsBattSoc gerätespezifisch
+            if key == "cmsBattSoc":
+                if sn == self.main_sn:
+                    self.realtime_data["cmsBattSoc"] = value
+                elif sn == self.secondary_sn:
+                    self.realtime_data["cmsBattSoc_acpro"] = value
+                continue
+
             # Normalen Wert speichern
             self.realtime_data[key] = value
 
             # Unbekannte Parameter erkennen
             if key not in known_keys and not isinstance(value, (dict, list)):
                 if key not in self._unknown_params:
-                    _LOGGER.info("Neuer unbekannter Parameter entdeckt: %s = %s", key, value)
+                    _LOGGER.info("Neuer unbekannter Parameter entdeckt: %s = %s (SN: %s)", key, value, sn)
                     new_unknown = True
                 self._unknown_params[key] = {
                     "value": value,
