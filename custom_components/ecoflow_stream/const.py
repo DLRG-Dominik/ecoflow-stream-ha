@@ -138,7 +138,7 @@ SENSOR_DEFINITIONS = {
         "factor": 1,
         "icon": "mdi:battery",
     },
-    "soc_ultrax": {
+    "ultrax_soc": {
         "name": "SOC Ultra X",
         "unit": PERCENTAGE,
         "device_class": SensorDeviceClass.BATTERY,
@@ -146,7 +146,7 @@ SENSOR_DEFINITIONS = {
         "factor": 1,
         "icon": "mdi:battery",
     },
-    "cmsBattSoc": {
+    "acpro_cms_soc": {
         "name": "SOC AC Pro",
         "unit": PERCENTAGE,
         "device_class": SensorDeviceClass.BATTERY,

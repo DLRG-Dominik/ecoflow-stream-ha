@@ -92,8 +92,8 @@ class EcoFlowCoordinator(DataUpdateCoordinator):
         AC Pro:   1.920 Wh → MQTT Key: 'cmsBattSoc' von BK31ZE1A4H4J1395
         Gesamt:   5.760 Wh
         """
-        soc_ultrax = self.realtime_data.get("soc_ultrax")
-        soc_acpro = self.realtime_data.get("cmsBattSoc")
+        soc_ultrax = self.realtime_data.get("ultrax_soc")
+        soc_acpro = self.realtime_data.get("acpro_cms_soc")
 
         if soc_ultrax is not None and soc_acpro is not None:
             try:
@@ -163,20 +163,20 @@ class EcoFlowCoordinator(DataUpdateCoordinator):
                 self.realtime_data["cloudMetter_phaseCPower"] = value.get("phaseCPower", 0)
                 continue
 
-            # SOC gerätespezifisch speichern
+            # SOC gerätespezifisch speichern mit Geräte-Präfix
             if key == "soc":
                 if sn == self.main_sn:
-                    self.realtime_data["soc_ultrax"] = value  # Ultra X SOC
+                    self.realtime_data["ultrax_soc"] = value
                 elif sn == self.secondary_sn:
-                    self.realtime_data["soc_acpro_raw"] = value  # AC Pro SOC (raw)
+                    self.realtime_data["acpro_soc"] = value
                 continue
 
-            # cmsBattSoc kommt vom AC Pro (secondary_sn) → direkt als cmsBattSoc speichern
+            # cmsBattSoc gerätespezifisch
             if key == "cmsBattSoc":
-                if sn == self.secondary_sn:
-                    self.realtime_data["cmsBattSoc"] = value  # AC Pro SOC
-                elif sn == self.main_sn:
-                    self.realtime_data["cmsBattSoc_ultrax"] = value  # Ultra X CMS SOC
+                if sn == self.main_sn:
+                    self.realtime_data["ultrax_cms_soc"] = value
+                elif sn == self.secondary_sn:
+                    self.realtime_data["acpro_cms_soc"] = value
                 continue
 
             # Normalen Wert speichern

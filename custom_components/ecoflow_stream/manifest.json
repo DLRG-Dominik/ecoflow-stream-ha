@@ -1,7 +1,7 @@
 {
   "domain": "ecoflow_stream",
   "name": "EcoFlow Stream",
-  "version": "1.0.9",
+  "version": "1.1.0",
   "documentation": "https://github.com/fsprogramming/ecoflow_stream_ha",
   "requirements": ["paho-mqtt==2.1.0"],
   "dependencies": [],
