@@ -130,7 +130,14 @@ SENSOR_DEFINITIONS = {
         "factor": 1,
         "icon": "mdi:battery-high",
     },
-    "soc_system_weighted": {
+    "system_soc_cms": {
+        "name": "SOC System (Master)",
+        "unit": PERCENTAGE,
+        "device_class": SensorDeviceClass.BATTERY,
+        "state_class": SensorStateClass.MEASUREMENT,
+        "factor": 1,
+        "icon": "mdi:battery",
+    },
         "name": "SOC Gesamtsystem (gewichtet)",
         "unit": PERCENTAGE,
         "device_class": SensorDeviceClass.BATTERY,

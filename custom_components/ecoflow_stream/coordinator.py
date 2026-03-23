@@ -163,24 +163,22 @@ class EcoFlowCoordinator(DataUpdateCoordinator):
                 self.realtime_data["cloudMetter_phaseCPower"] = value.get("phaseCPower", 0)
                 continue
 
-            # soc kommt vom AC Pro (BK31/secondary_sn)
-            if key == "soc":
-                if sn == self.secondary_sn:
-                    self.realtime_data["acpro_soc"] = value
-                elif sn == self.main_sn:
-                    self.realtime_data["ultrax_soc_raw"] = value
-                continue
-
-            # bmsBattSoc kommt vom Ultra X (BK61/main_sn)
+            # bmsBattSoc kommt von BEIDEN Geräten mit ihrem jeweiligen SOC
             if key == "bmsBattSoc":
                 if sn == self.main_sn:
-                    self.realtime_data["ultrax_soc"] = value
+                    self.realtime_data["ultrax_soc"] = value   # Ultra X SOC
                 elif sn == self.secondary_sn:
-                    self.realtime_data["acpro_bms_soc"] = value
+                    self.realtime_data["acpro_soc"] = value    # AC Pro SOC
                 continue
 
-            # cmsBattSoc ignorieren (0.0 vom Ultra X, nicht zuverlässig)
+            # cmsBattSoc vom AC Pro (secondary) = Gesamt-System-SOC
             if key == "cmsBattSoc":
+                if sn == self.secondary_sn:
+                    self.realtime_data["system_soc_cms"] = value  # System-SOC vom Master
+                continue
+
+            # soc ignorieren (identisch mit bmsBattSoc)
+            if key == "soc":
                 continue
 
             # Normalen Wert speichern
