@@ -85,6 +85,26 @@ class EcoFlowCoordinator(DataUpdateCoordinator):
         except Exception as ex:
             _LOGGER.warning("PV-Energiezähler konnte nicht gespeichert werden: %s", ex)
 
+    def _update_system_soc(self) -> None:
+        """Gewichteten Gesamt-SOC berechnen.
+        
+        Ultra X:  3.840 Wh (bmsBattSoc)
+        AC Pro:   1.920 Wh (cascadeSysSoc)
+        Gesamt:   5.760 Wh
+        """
+        soc_ultrax = self.realtime_data.get("bmsBattSoc")
+        soc_acpro = self.realtime_data.get("cascadeSysSoc")
+
+        if soc_ultrax is not None and soc_acpro is not None:
+            try:
+                wh_ultrax = 3840.0
+                wh_acpro = 1920.0
+                wh_total = wh_ultrax + wh_acpro
+                soc_weighted = (float(soc_ultrax) * wh_ultrax + float(soc_acpro) * wh_acpro) / wh_total
+                self.realtime_data["soc_system_weighted"] = round(soc_weighted, 1)
+            except (ValueError, TypeError) as ex:
+                _LOGGER.debug("SOC Berechnung fehlgeschlagen: %s", ex)
+
     def _update_pv_energy(self, params: dict) -> None:
         """PV-Energie aus aktueller MQTT-Nachricht hochzählen."""
         # PV-Gesamtleistung aus powGetPvSum (AC Pro Master) oder Summe der MPPTs
@@ -163,6 +183,9 @@ class EcoFlowCoordinator(DataUpdateCoordinator):
 
         # PV-Energiezähler aktualisieren
         self._update_pv_energy(params)
+
+        # Gewichteten Gesamt-SOC berechnen
+        self._update_system_soc()
 
         # HA Update anstoßen
         self.hass.loop.call_soon_threadsafe(
