@@ -138,13 +138,6 @@ SENSOR_DEFINITIONS = {
         "factor": 1,
         "icon": "mdi:battery",
     },
-        "name": "SOC Gesamtsystem (gewichtet)",
-        "unit": PERCENTAGE,
-        "device_class": SensorDeviceClass.BATTERY,
-        "state_class": SensorStateClass.MEASUREMENT,
-        "factor": 1,
-        "icon": "mdi:battery",
-    },
     "ultrax_soc": {
         "name": "SOC Ultra X",
         "unit": PERCENTAGE,
