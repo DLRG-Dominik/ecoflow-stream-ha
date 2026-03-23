@@ -60,6 +60,57 @@ class EcoFlowCoordinator(DataUpdateCoordinator):
         self._unknown_params_path = hass.config.path(UNKNOWN_PARAMS_FILE)
         self._load_unknown_params()
 
+        # Kumulativer PV-Energiezähler
+        self._pv_energy_path = hass.config.path("ecoflow_stream_pv_energy.json")
+        self._pv_energy_wh: float = 0.0
+        self._last_pv_update: datetime | None = None
+        self._load_pv_energy()
+
+    def _load_pv_energy(self) -> None:
+        """Kumulativen PV-Energiezähler laden."""
+        try:
+            if os.path.exists(self._pv_energy_path):
+                with open(self._pv_energy_path, "r") as f:
+                    data = json.load(f)
+                    self._pv_energy_wh = float(data.get("pv_energy_wh", 0.0))
+                _LOGGER.debug("PV-Energiezähler geladen: %.1f Wh", self._pv_energy_wh)
+        except Exception as ex:
+            _LOGGER.warning("PV-Energiezähler konnte nicht geladen werden: %s", ex)
+
+    def _save_pv_energy(self) -> None:
+        """Kumulativen PV-Energiezähler speichern."""
+        try:
+            with open(self._pv_energy_path, "w") as f:
+                json.dump({"pv_energy_wh": self._pv_energy_wh}, f)
+        except Exception as ex:
+            _LOGGER.warning("PV-Energiezähler konnte nicht gespeichert werden: %s", ex)
+
+    def _update_pv_energy(self, params: dict) -> None:
+        """PV-Energie aus aktueller MQTT-Nachricht hochzählen."""
+        # PV-Gesamtleistung aus powGetPvSum (AC Pro Master) oder Summe der MPPTs
+        pv_power = 0.0
+        if "powGetPvSum" in params:
+            pv_power = float(params["powGetPvSum"])
+        else:
+            for key in ["powGetPv", "powGetPv2", "powGetPv3", "powGetPv4"]:
+                if key in params:
+                    pv_power += float(params[key])
+
+        if pv_power <= 0:
+            return
+
+        now = datetime.now()
+        if self._last_pv_update is not None:
+            elapsed_seconds = (now - self._last_pv_update).total_seconds()
+            # Maximal 120 Sekunden berücksichtigen (verhindert Sprünge nach Verbindungsabbruch)
+            elapsed_seconds = min(elapsed_seconds, 120)
+            energy_delta_wh = pv_power * elapsed_seconds / 3600
+            self._pv_energy_wh += energy_delta_wh
+            self._save_pv_energy()
+
+        self._last_pv_update = now
+        self.realtime_data["pv_energy_total_wh"] = round(self._pv_energy_wh, 1)
+
     def _load_unknown_params(self) -> None:
         """Gespeicherte unbekannte Parameter laden."""
         try:
@@ -109,6 +160,9 @@ class EcoFlowCoordinator(DataUpdateCoordinator):
 
         if new_unknown:
             self._save_unknown_params()
+
+        # PV-Energiezähler aktualisieren
+        self._update_pv_energy(params)
 
         # HA Update anstoßen
         self.hass.loop.call_soon_threadsafe(

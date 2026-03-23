@@ -338,6 +338,14 @@ SENSOR_DEFINITIONS = {
     },
 
     # ── ENERGIE-ZÄHLER (total_increasing → HA Energy Dashboard) ──────────────
+    "pv_energy_total_wh": {
+        "name": "PV Energie Gesamt",
+        "unit": UnitOfEnergy.WATT_HOUR,
+        "device_class": SensorDeviceClass.ENERGY,
+        "state_class": SensorStateClass.TOTAL_INCREASING,
+        "factor": 1,
+        "icon": "mdi:solar-power",
+    },
     "accuChgEnergy": {
         "name": "Gesamt Ladeenergie",
         "unit": UnitOfEnergy.WATT_HOUR,
