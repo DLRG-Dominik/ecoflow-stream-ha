@@ -138,6 +138,14 @@ SENSOR_DEFINITIONS = {
         "factor": 1,
         "icon": "mdi:battery",
     },
+    "cmsBattSoc": {
+        "name": "System SOC (CMS)",
+        "unit": PERCENTAGE,
+        "device_class": SensorDeviceClass.BATTERY,
+        "state_class": SensorStateClass.MEASUREMENT,
+        "factor": 1,
+        "icon": "mdi:battery",
+    },
     "offgrid1ActivePower": {
         "name": "Offgrid Ausgang 1",
         "unit": UnitOfPower.WATT,
