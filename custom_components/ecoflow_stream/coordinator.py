@@ -171,10 +171,11 @@ class EcoFlowCoordinator(DataUpdateCoordinator):
                     self.realtime_data["acpro_soc"] = value    # AC Pro SOC
                 continue
 
-            # cmsBattSoc vom AC Pro (secondary) = Gesamt-System-SOC
+            # cmsBattSoc = Gesamt-System-SOC, kommt vom aktuellen MASTER
+            # Master kann wechseln (Ultra X oder AC Pro) -> nur Wert > 0 nehmen
             if key == "cmsBattSoc":
-                if sn == self.secondary_sn:
-                    self.realtime_data["system_soc_cms"] = value  # System-SOC vom Master
+                if float(value) > 0:
+                    self.realtime_data["system_soc_cms"] = value
                 continue
 
             # soc ignorieren (identisch mit bmsBattSoc)
